@@ -109,10 +109,7 @@ function PageBoard() {
     return categories.filter(cat => cat.pageId === currentPage.id);
   }, [categories, currentPage]);
 
-  const columnVisibility = useMemo(() => {
-    if (!currentPage) return null;
-    return getColumnVisibility(currentPage.id);
-  }, [currentPage, getColumnVisibility]);
+  const columnVisibility = currentPage ? getColumnVisibility(currentPage.id) : null;
 
   // 获取选中用例的分类
   const selectedCategory = useMemo(() => {
@@ -239,10 +236,7 @@ function TestCaseRoute() {
     return categories.filter(cat => cat.pageId === currentPage.id);
   }, [categories, currentPage]);
 
-  const columnVisibility = useMemo(() => {
-    if (!currentPage) return null;
-    return getColumnVisibility(currentPage.id);
-  }, [currentPage, getColumnVisibility]);
+  const columnVisibility = currentPage ? getColumnVisibility(currentPage.id) : null;
 
   // 获取选中用例的分类
   const selectedCategory = useMemo(() => {
