@@ -43,6 +43,13 @@ export interface TestCase {
   updatedAt: number;
 }
 
+/** 看板列显示设置 */
+export interface ColumnVisibility {
+  pending: boolean;
+  failed: boolean;
+  passed: boolean;
+}
+
 /** 应用状态 */
 export interface AppState {
   version: string;
@@ -50,6 +57,7 @@ export interface AppState {
   categories: Category[];
   testCases: TestCase[];
   currentPageId: string | null;
+  columnVisibility: Record<string, ColumnVisibility>;
   lastUpdated: number;
 }
 

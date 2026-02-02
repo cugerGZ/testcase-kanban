@@ -1,6 +1,6 @@
-import { FileText, Search, BarChart3 } from 'lucide-react';
+import { FileText, Search, BarChart3, Clock, XCircle, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Select } from '../common';
+import { Select, Button } from '../common';
 import { useAppStore } from '../../store/useAppStore';
 
 interface PageSelectorProps {
@@ -10,9 +10,10 @@ interface PageSelectorProps {
 
 export function PageSelector({ searchQuery, onSearchChange }: PageSelectorProps) {
   const navigate = useNavigate();
-  const { pages, currentPageId, setCurrentPage, getStatistics } = useAppStore();
+  const { pages, currentPageId, setCurrentPage, getStatistics, getColumnVisibility, setColumnVisibility } = useAppStore();
 
   const stats = getStatistics(currentPageId || undefined);
+  const columnVisibility = currentPageId ? getColumnVisibility(currentPageId) : null;
 
   const pageOptions = pages.map((page) => ({
     value: page.id,
@@ -80,6 +81,37 @@ export function PageSelector({ searchQuery, onSearchChange }: PageSelectorProps)
                 共 {stats.total} 个
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Column Visibility Toggles */}
+        {currentPageId && columnVisibility && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">看板显示:</span>
+            <Button
+              variant={columnVisibility.pending ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setColumnVisibility(currentPageId, { pending: !columnVisibility.pending })}
+            >
+              <Clock size={14} />
+              待测试
+            </Button>
+            <Button
+              variant={columnVisibility.failed ? 'danger' : 'secondary'}
+              size="sm"
+              onClick={() => setColumnVisibility(currentPageId, { failed: !columnVisibility.failed })}
+            >
+              <XCircle size={14} />
+              有问题
+            </Button>
+            <Button
+              variant={columnVisibility.passed ? 'success' : 'secondary'}
+              size="sm"
+              onClick={() => setColumnVisibility(currentPageId, { passed: !columnVisibility.passed })}
+            >
+              <CheckCircle size={14} />
+              已通过
+            </Button>
           </div>
         )}
       </div>

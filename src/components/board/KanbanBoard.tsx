@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { TestCase, Category } from '../../types';
+import type { TestCase, Category, ColumnVisibility, TestStatus } from '../../types';
 import { KanbanColumn } from './KanbanColumn';
 
 interface KanbanBoardProps {
@@ -8,6 +8,7 @@ interface KanbanBoardProps {
   searchQuery: string;
   onCardClick: (testCase: TestCase) => void;
   onDeleteCase: (id: string) => void;
+  columnVisibility: ColumnVisibility;
 }
 
 export function KanbanBoard({
@@ -16,6 +17,7 @@ export function KanbanBoard({
   searchQuery,
   onCardClick,
   onDeleteCase,
+  columnVisibility,
 }: KanbanBoardProps) {
   const [allExpanded, setAllExpanded] = useState(true);
 
@@ -51,39 +53,65 @@ export function KanbanBoard({
     setAllExpanded(!allExpanded);
   };
 
+  const visibleStatuses = useMemo(() => {
+    const statuses: TestStatus[] = [];
+    if (columnVisibility.pending) statuses.push('pending');
+    if (columnVisibility.failed) statuses.push('failed');
+    if (columnVisibility.passed) statuses.push('passed');
+    return statuses;
+  }, [columnVisibility]);
+
+  const gridColsClass = visibleStatuses.length === 1
+    ? 'grid-cols-1'
+    : visibleStatuses.length === 2
+    ? 'grid-cols-2'
+    : 'grid-cols-3';
+
   return (
     <div className="flex-1 p-4 overflow-hidden">
-      <div className="grid grid-cols-3 gap-4 h-full">
-        <KanbanColumn
-          status="pending"
-          testCases={pendingCases}
-          categories={categories}
-          onCardClick={onCardClick}
-          onDeleteCase={onDeleteCase}
-          allExpanded={allExpanded}
-          onToggleAll={handleToggleAll}
-        />
+      {visibleStatuses.length === 0 ? (
+        <div className="flex h-full items-center justify-center text-sm text-gray-500">
+          已隐藏全部看板列，请在标头中重新开启
+        </div>
+      ) : (
+        <div className={`grid ${gridColsClass} gap-4 h-full`}>
+          {visibleStatuses.includes('pending') && (
+            <KanbanColumn
+              status="pending"
+              testCases={pendingCases}
+              categories={categories}
+              onCardClick={onCardClick}
+              onDeleteCase={onDeleteCase}
+              allExpanded={allExpanded}
+              onToggleAll={handleToggleAll}
+            />
+          )}
 
-        <KanbanColumn
-          status="failed"
-          testCases={failedCases}
-          categories={categories}
-          onCardClick={onCardClick}
-          onDeleteCase={onDeleteCase}
-          allExpanded={allExpanded}
-          onToggleAll={handleToggleAll}
-        />
+          {visibleStatuses.includes('failed') && (
+            <KanbanColumn
+              status="failed"
+              testCases={failedCases}
+              categories={categories}
+              onCardClick={onCardClick}
+              onDeleteCase={onDeleteCase}
+              allExpanded={allExpanded}
+              onToggleAll={handleToggleAll}
+            />
+          )}
 
-        <KanbanColumn
-          status="passed"
-          testCases={passedCases}
-          categories={categories}
-          onCardClick={onCardClick}
-          onDeleteCase={onDeleteCase}
-          allExpanded={allExpanded}
-          onToggleAll={handleToggleAll}
-        />
-      </div>
+          {visibleStatuses.includes('passed') && (
+            <KanbanColumn
+              status="passed"
+              testCases={passedCases}
+              categories={categories}
+              onCardClick={onCardClick}
+              onDeleteCase={onDeleteCase}
+              allExpanded={allExpanded}
+              onToggleAll={handleToggleAll}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -71,6 +71,7 @@ function PageBoard() {
     setCurrentPage,
     updateTestCaseStatus,
     deleteTestCase,
+    getColumnVisibility,
   } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,6 +108,11 @@ function PageBoard() {
     if (!currentPage) return [];
     return categories.filter(cat => cat.pageId === currentPage.id);
   }, [categories, currentPage]);
+
+  const columnVisibility = useMemo(() => {
+    if (!currentPage) return null;
+    return getColumnVisibility(currentPage.id);
+  }, [currentPage, getColumnVisibility]);
 
   // 获取选中用例的分类
   const selectedCategory = useMemo(() => {
@@ -162,6 +168,7 @@ function PageBoard() {
         searchQuery={searchQuery}
         onCardClick={handleCardClick}
         onDeleteCase={deleteTestCase}
+        columnVisibility={columnVisibility || { pending: true, failed: true, passed: true }}
       />
       <TestCaseDetail
         testCase={selectedTestCase}
@@ -186,6 +193,7 @@ function TestCaseRoute() {
     setCurrentPage,
     updateTestCaseStatus,
     deleteTestCase,
+    getColumnVisibility,
   } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -231,6 +239,11 @@ function TestCaseRoute() {
     return categories.filter(cat => cat.pageId === currentPage.id);
   }, [categories, currentPage]);
 
+  const columnVisibility = useMemo(() => {
+    if (!currentPage) return null;
+    return getColumnVisibility(currentPage.id);
+  }, [currentPage, getColumnVisibility]);
+
   // 获取选中用例的分类
   const selectedCategory = useMemo(() => {
     if (!targetTestCase) return undefined;
@@ -274,6 +287,7 @@ function TestCaseRoute() {
         searchQuery={searchQuery}
         onCardClick={handleCardClick}
         onDeleteCase={deleteTestCase}
+        columnVisibility={columnVisibility || { pending: true, failed: true, passed: true }}
       />
       <TestCaseDetail
         testCase={targetTestCase}

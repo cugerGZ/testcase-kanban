@@ -6,7 +6,8 @@ import type {
   Category,
   TestCase,
   TestStatus,
-  ParsedTestCase
+  ParsedTestCase,
+  ColumnVisibility
 } from '../types';
 import { nanoid } from '../utils/helpers';
 
@@ -16,6 +17,8 @@ interface AppStore extends AppState {
   updatePage: (id: string, updates: Partial<Page>) => void;
   deletePage: (id: string) => void;
   setCurrentPage: (pageId: string | null) => void;
+  getColumnVisibility: (pageId: string) => ColumnVisibility;
+  setColumnVisibility: (pageId: string, updates: Partial<ColumnVisibility>) => void;
 
   // 分类操作
   addCategory: (category: Omit<Category, 'id'>) => string;
@@ -54,7 +57,14 @@ const initialState: AppState = {
   categories: [],
   testCases: [],
   currentPageId: null,
+  columnVisibility: {},
   lastUpdated: Date.now(),
+};
+
+const defaultColumnVisibility: ColumnVisibility = {
+  pending: true,
+  failed: true,
+  passed: true,
 };
 
 export const useAppStore = create<AppStore>()(
@@ -76,6 +86,10 @@ export const useAppStore = create<AppStore>()(
 
         set((state) => ({
           pages: [...state.pages, newPage],
+          columnVisibility: {
+            ...state.columnVisibility,
+            [id]: defaultColumnVisibility,
+          },
           lastUpdated: now,
         }));
 
@@ -98,12 +112,33 @@ export const useAppStore = create<AppStore>()(
           categories: state.categories.filter((cat) => cat.pageId !== id),
           testCases: state.testCases.filter((tc) => tc.pageId !== id),
           currentPageId: state.currentPageId === id ? null : state.currentPageId,
+          columnVisibility: Object.fromEntries(
+            Object.entries(state.columnVisibility).filter(([key]) => key !== id)
+          ),
           lastUpdated: Date.now(),
         }));
       },
 
       setCurrentPage: (pageId) => {
         set({ currentPageId: pageId });
+      },
+
+      getColumnVisibility: (pageId) => {
+        const current = get().columnVisibility[pageId];
+        return current || defaultColumnVisibility;
+      },
+
+      setColumnVisibility: (pageId, updates) => {
+        set((state) => ({
+          columnVisibility: {
+            ...state.columnVisibility,
+            [pageId]: {
+              ...(state.columnVisibility[pageId] || defaultColumnVisibility),
+              ...updates,
+            },
+          },
+          lastUpdated: Date.now(),
+        }));
       },
 
       // ==================== 分类操作 ====================
@@ -296,6 +331,10 @@ export const useAppStore = create<AppStore>()(
             categories: [...state.categories, ...newCategories],
             testCases: [...filteredExisting, ...newTestCases],
             currentPageId: targetPageId,
+            columnVisibility: {
+              ...state.columnVisibility,
+              [targetPageId]: state.columnVisibility[targetPageId] || defaultColumnVisibility,
+            },
             lastUpdated: now,
           };
         });
@@ -312,6 +351,7 @@ export const useAppStore = create<AppStore>()(
           pages: state.pages,
           categories: state.categories,
           testCases: state.testCases,
+          columnVisibility: state.columnVisibility,
           lastUpdated: state.lastUpdated,
         }, null, 2);
       },
@@ -323,12 +363,21 @@ export const useAppStore = create<AppStore>()(
             return false;
           }
 
+          const defaultVisibilityMap: Record<string, ColumnVisibility> = {};
+          for (const page of data.pages) {
+            defaultVisibilityMap[page.id] = defaultColumnVisibility;
+          }
+
           set({
             version: data.version,
             pages: data.pages,
             categories: data.categories || [],
             testCases: data.testCases,
             currentPageId: data.pages.length > 0 ? data.pages[0].id : null,
+            columnVisibility: {
+              ...defaultVisibilityMap,
+              ...(data.columnVisibility || {}),
+            },
             lastUpdated: Date.now(),
           });
 
