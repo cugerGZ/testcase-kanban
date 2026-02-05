@@ -60,128 +60,9 @@ function HomePage() {
   );
 }
 
-// 页面看板组件
+// 页面看板组件 - 统一处理 /:pageName 和 /:pageName/:caseCode 路由
 function PageBoard() {
-  const { pageName } = useParams<{ pageName: string }>();
-  const navigate = useNavigate();
-  const {
-    pages,
-    categories,
-    testCases,
-    setCurrentPage,
-    updateTestCaseStatus,
-    deleteTestCase,
-    getColumnVisibility,
-  } = useAppStore();
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTestCase, setSelectedTestCase] = useState<TestCase | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-
-  // 根据路由参数找到对应页面
-  const currentPage = useMemo(() => {
-    return pages.find(p => p.name === pageName);
-  }, [pages, pageName]);
-
-  // 设置当前页面
-  useEffect(() => {
-    if (currentPage) {
-      setCurrentPage(currentPage.id);
-    }
-  }, [currentPage, setCurrentPage]);
-
-  // 如果页面不存在，重定向到首页
-  useEffect(() => {
-    if (pageName && pages.length > 0 && !currentPage) {
-      navigate('/');
-    }
-  }, [pageName, pages, currentPage, navigate]);
-
-  // 获取当前页面的测试用例
-  const currentTestCases = useMemo(() => {
-    if (!currentPage) return [];
-    return testCases.filter(tc => tc.pageId === currentPage.id);
-  }, [testCases, currentPage]);
-
-  // 获取当前页面的分类
-  const currentCategories = useMemo(() => {
-    if (!currentPage) return [];
-    return categories.filter(cat => cat.pageId === currentPage.id);
-  }, [categories, currentPage]);
-
-  const columnVisibility = currentPage ? getColumnVisibility(currentPage.id) : null;
-
-  // 获取选中用例的分类
-  const selectedCategory = useMemo(() => {
-    if (!selectedTestCase) return undefined;
-    return categories.find(cat => cat.id === selectedTestCase.categoryId);
-  }, [selectedTestCase, categories]);
-
-  // 处理卡片点击
-  const handleCardClick = (testCase: TestCase) => {
-    setSelectedTestCase(testCase);
-    setIsDetailOpen(true);
-    // 更新 URL
-    navigate(`/${pageName}/${testCase.code}`, { replace: true });
-  };
-
-  // 处理状态更新
-  const handleStatusChange = (id: string, status: TestCase['status'], notes?: string) => {
-    updateTestCaseStatus(id, status, notes);
-    const updated = testCases.find(tc => tc.id === id);
-    if (updated) {
-      setSelectedTestCase({ ...updated, status, notes: notes ?? updated.notes });
-    }
-  };
-
-  // 处理删除用例
-  const handleDeleteTestCase = (id: string) => {
-    deleteTestCase(id);
-    setIsDetailOpen(false);
-    setSelectedTestCase(null);
-    navigate(`/${pageName}`, { replace: true });
-  };
-
-  // 关闭详情
-  const handleCloseDetail = () => {
-    setIsDetailOpen(false);
-    setSelectedTestCase(null);
-    navigate(`/${pageName}`, { replace: true });
-  };
-
-  if (!currentPage) {
-    return null;
-  }
-
-  return (
-    <>
-      <PageSelector
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-      <KanbanBoard
-        testCases={currentTestCases}
-        categories={currentCategories}
-        searchQuery={searchQuery}
-        onCardClick={handleCardClick}
-        onDeleteCase={deleteTestCase}
-        columnVisibility={columnVisibility || { pending: true, failed: true, passed: true }}
-      />
-      <TestCaseDetail
-        testCase={selectedTestCase}
-        category={selectedCategory}
-        isOpen={isDetailOpen}
-        onClose={handleCloseDetail}
-        onStatusChange={handleStatusChange}
-        onDelete={handleDeleteTestCase}
-      />
-    </>
-  );
-}
-
-// 用例详情路由组件（从 URL 直接打开特定用例）
-function TestCaseRoute() {
-  const { pageName, caseCode } = useParams<{ pageName: string; caseCode: string }>();
+  const { pageName, caseCode } = useParams<{ pageName: string; caseCode?: string }>();
   const navigate = useNavigate();
   const {
     pages,
@@ -200,7 +81,7 @@ function TestCaseRoute() {
     return pages.find(p => p.name === pageName);
   }, [pages, pageName]);
 
-  // 根据路由参数找到对应用例
+  // 根据路由参数找到对应用例（如果有 caseCode）
   const targetTestCase = useMemo(() => {
     if (!currentPage || !caseCode) return null;
     return testCases.find(tc => tc.pageId === currentPage.id && tc.code === caseCode);
@@ -213,16 +94,17 @@ function TestCaseRoute() {
     }
   }, [currentPage, setCurrentPage]);
 
-  // 如果页面或用例不存在，重定向
+  // 如果页面不存在，重定向到首页
   useEffect(() => {
     if (pages.length > 0) {
       if (!currentPage) {
         navigate('/');
       } else if (caseCode && !targetTestCase) {
-        navigate(`/${pageName}`);
+        // 如果用例不存在，重定向到页面
+        navigate(`/${pageName}`, { replace: true });
       }
     }
-  }, [pages, currentPage, caseCode, targetTestCase, navigate, pageName]);
+  }, [pageName, pages, currentPage, caseCode, targetTestCase, navigate]);
 
   // 获取当前页面的测试用例
   const currentTestCases = useMemo(() => {
@@ -246,6 +128,7 @@ function TestCaseRoute() {
 
   // 处理卡片点击
   const handleCardClick = (testCase: TestCase) => {
+    // 更新 URL，不使用 replace，让用户可以返回
     navigate(`/${pageName}/${testCase.code}`);
   };
 
@@ -262,7 +145,7 @@ function TestCaseRoute() {
 
   // 关闭详情
   const handleCloseDetail = () => {
-    navigate(`/${pageName}`);
+    navigate(`/${pageName}`, { replace: true });
   };
 
   if (!currentPage) {
@@ -325,8 +208,8 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-gray-100">
       {/* Header */}
-      <Header 
-        onImportClick={() => setIsImportModalOpen(true)} 
+      <Header
+        onImportClick={() => setIsImportModalOpen(true)}
         showStats={isStatsPage}
         onToggleStats={handleToggleStats}
         showHomeButton={!isHomePage}
@@ -338,7 +221,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/stats" element={<StatsRoute />} />
         <Route path="/:pageName" element={<PageBoard />} />
-        <Route path="/:pageName/:caseCode" element={<TestCaseRoute />} />
+        <Route path="/:pageName/:caseCode" element={<PageBoard />} />
       </Routes>
 
       {/* Global Import Modal */}
