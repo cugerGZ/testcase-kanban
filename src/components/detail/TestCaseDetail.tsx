@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Clock,
   XCircle,
@@ -35,15 +35,12 @@ export function TestCaseDetail({
   onDelete,
 }: TestCaseDetailProps) {
   const [notes, setNotes] = useState('');
-  const [lastTestCaseId, setLastTestCaseId] = useState<string | undefined>(undefined);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // 当 testCase 改变时重置 notes
-  const currentTestCaseId = testCase?.id;
-  if (currentTestCaseId !== lastTestCaseId) {
-    setLastTestCaseId(currentTestCaseId);
+  useEffect(() => {
     setNotes(testCase?.notes || '');
-  }
+  }, [testCase?.id]);
 
   if (!testCase) return null;
 

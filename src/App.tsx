@@ -62,7 +62,7 @@ function HomePage() {
 
 // 页面看板组件 - 统一处理 /:pageName 和 /:pageName/:caseCode 路由
 function PageBoard() {
-  const { pageName, caseCode } = useParams<{ pageName: string; caseCode?: string }>();
+  const { pageName, caseId } = useParams<{ pageName: string; caseId?: string }>();
   const navigate = useNavigate();
   const {
     pages,
@@ -81,11 +81,14 @@ function PageBoard() {
     return pages.find(p => p.name === pageName);
   }, [pages, pageName]);
 
-  // 根据路由参数找到对应用例（如果有 caseCode）
+  // 根据路由参数找到对应用例（优先按 id，其次按 code 兼容旧链接）
   const targetTestCase = useMemo(() => {
-    if (!currentPage || !caseCode) return null;
-    return testCases.find(tc => tc.pageId === currentPage.id && tc.code === caseCode);
-  }, [currentPage, caseCode, testCases]);
+    if (!currentPage || !caseId) return null;
+    return (
+      testCases.find(tc => tc.pageId === currentPage.id && tc.id === caseId) ||
+      testCases.find(tc => tc.pageId === currentPage.id && tc.code === caseId)
+    );
+  }, [currentPage, caseId, testCases]);
 
   // 设置当前页面
   useEffect(() => {
@@ -99,12 +102,12 @@ function PageBoard() {
     if (pages.length > 0) {
       if (!currentPage) {
         navigate('/');
-      } else if (caseCode && !targetTestCase) {
+      } else if (caseId && !targetTestCase) {
         // 如果用例不存在，重定向到页面
         navigate(`/${pageName}`, { replace: true });
       }
     }
-  }, [pageName, pages, currentPage, caseCode, targetTestCase, navigate]);
+  }, [pageName, pages, currentPage, caseId, targetTestCase, navigate]);
 
   // 获取当前页面的测试用例
   const currentTestCases = useMemo(() => {
@@ -128,8 +131,8 @@ function PageBoard() {
 
   // 处理卡片点击
   const handleCardClick = (testCase: TestCase) => {
-    // 更新 URL，不使用 replace，让用户可以返回
-    navigate(`/${pageName}/${testCase.code}`);
+    // 更新 URL，不使用 replace，让用户可以返回（使用 id 避免重复 code）
+    navigate(`/${pageName}/${testCase.id}`);
   };
 
   // 处理状态更新
@@ -221,7 +224,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/stats" element={<StatsRoute />} />
         <Route path="/:pageName" element={<PageBoard />} />
-        <Route path="/:pageName/:caseCode" element={<PageBoard />} />
+        <Route path="/:pageName/:caseId" element={<PageBoard />} />
       </Routes>
 
       {/* Global Import Modal */}
